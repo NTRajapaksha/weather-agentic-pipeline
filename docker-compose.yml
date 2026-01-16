@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-weatheruser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weatherpass}
+      POSTGRES_DB: ${POSTGRES_DB:-weatherdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      # FIXED LINE BELOW: Added -d to specify the database name
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-weatheruser} -d ${POSTGRES_DB:-weatherdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-weatheruser}:${POSTGRES_PASSWORD:-weatherpass}@db:5432/${POSTGRES_DB:-weatherdb}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
+      - API_TOKEN=${API_TOKEN}
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
