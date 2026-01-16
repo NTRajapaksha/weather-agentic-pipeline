@@ -185,8 +185,7 @@ curl http://localhost:8000/health
   "database": "connected",
   "uptime_seconds": "1373.32705783844"
 }
-
----
+```
 ---
 
 ## 🧪 Testing & Verification
