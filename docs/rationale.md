@@ -12,17 +12,17 @@ Chosen for its dominance in Data Engineering and AI. It offers robust libraries 
     * It enforces strict schema constraints (Unique Constraints) which are vital for data integrity.
 
 ### **Orchestration: APScheduler**
-* **Decision:** We chose `APScheduler` over heavy tools like Airflow or Prefect.
+* **Decision:** I chose `APScheduler` over heavy tools like Airflow or Prefect.
 * **Reasoning:** The requirement is a single hourly loop. Airflow brings massive overhead (webserver, scheduler, redis, workers). `APScheduler` runs as a lightweight thread within our main Python process, reducing resource usage and deployment complexity.
 
 ### **AI Framework: OpenAI Assistants (Tools)**
-* **Design:** We utilized the "Function Calling" (Tool Use) capability of GPT-4o-mini.
+* **Design:** Utilized the "Function Calling" (Tool Use) capability of GPT-4o-mini.
 * **Why:** This allows the LLM to structure queries deterministically (`get_weather(city='Tokyo')`) rather than hallucinating SQL or parsing vague text. It strictly separates the "Brain" (LLM) from the "Data" (DB).
 
 ## 2. Key Design Patterns
 
 ### **Idempotency Strategy**
-To prevent duplicate data during backfills or retries, we implemented a composite unique constraint on `(city, timestamp)`. The ingestion layer uses the `ON CONFLICT DO UPDATE` clause. This means we can re-run the backfill script 100 times, and the database will remain accurate without duplication.
+To prevent duplicate data during backfills or retries, I implemented a composite unique constraint on `(city, timestamp)`. The ingestion layer uses the `ON CONFLICT DO UPDATE` clause. This means we can re-run the backfill script 100 times, and the database will remain accurate without duplication.
 
 ### **Resilience & Fallback**
 The agent is designed with a "Database First, API Fallback" approach:
@@ -39,12 +39,16 @@ If this were going to a large-scale production environment, I would add:
 
 ### **Backfill Data Source (Open-Meteo vs. OpenWeatherMap)**
 **Requirement:** "Backfill at least 2 months of historical weather data from OpenWeatherMap."
+
 **Implementation:** I utilized the **Open-Meteo Archive API** for historical backfilling.
+
 **Rationale:** The OpenWeatherMap "History API" is a paid feature that is not accessible via the standard Free Tier API key provided for this test. To adhere to the requirement of 60 days of history without incurring costs or requiring a paid subscription, I integrated Open-Meteo as a cost-effective, reliable alternative for historical data. The data schema was normalized to match the OpenWeatherMap format, ensuring consistency in the database regardless of the source.
 
 ### **Database Choice (PostgreSQL vs. BigQuery)**
 **Requirement:** "Store in BigQuery (preferred) or another structured database."
+
 **Implementation:** I chose **PostgreSQL 15**.
+
 **Rationale:** While BigQuery is powerful for analytics, PostgreSQL was selected to maximize **portability and ease of evaluation**.
 1.  **Zero-Config Deployment:** By using Postgres in Docker, the entire stack runs with a single `docker-compose up` command. Using BigQuery would require the evaluator to set up a Google Cloud Project, generate Service Account keys, and configure IAM permissions, which adds friction to the review process.
 2.  **Idempotency Constraints:** PostgreSQL allows strict `UNIQUE` constraints and `ON CONFLICT` clauses, which are essential for the required idempotency (preventing duplicate rows) during high-frequency ingestion.
@@ -191,3 +195,34 @@ curl -X POST http://localhost:8000/query \
 2. **Fast Feedback:** Tests run inside Docker for consistency with production environment
 3. **Practical Focus:** Tests validate actual user workflows rather than abstract unit tests
 4. **Database-Centric:** Direct SQL queries provide ground truth verification
+
+## 6. Side Products & Utilities
+
+During development of this agentic pipeline, several helper utilities and testing frameworks were created:
+
+### **Testing Suite**
+* **`tests/test_ingestion.py`**: Validates data fetching, normalization, and database storage
+* **`tests/test_agent.py`**: Verifies AI agent tool execution and guardrails
+* **`tests/test_beta.py`**: Alternative implementation using OpenAI Assistants API (Beta)
+
+### **Database Verification Scripts**
+A comprehensive set of SQL queries (documented in `db_schema.md`) for validating:
+* Data volume and distribution across cities
+* Idempotency (detecting duplicate records)
+* Temporal coverage (ensuring 60-day backfill)
+* Data quality (null checks, outliers)
+* Index performance verification
+
+### **Monitoring & Health Checks**
+* **Health Endpoint (`/health`)**: FastAPI endpoint for uptime monitoring and database connectivity checks
+* **Structured Logging**: APScheduler job execution logs for debugging ingestion failures
+
+### **Configuration Management**
+* **`.env.example`**: Template file documenting all required environment variables
+* **City Configuration**: Centralized list of 100 monitored cities with coordinates
+
+### **Development Tools**
+* **Docker Compose**: Single-command deployment for consistent development/production environments
+* **Hot Reload**: FastAPI development mode for rapid iteration
+
+These utilities collectively reduce debugging time, ensure data quality, and provide production-readiness monitoring capabilities.
