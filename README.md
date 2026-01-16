@@ -135,7 +135,8 @@ curl -X POST "http://localhost:8000/query" \
 **Expected Response:**
 ```json
 {
-  "response": "The current weather in Tokyo is clear with a temperature of 5.15°C, humidity at 42%, and wind speed of 2.06 m/s."
+  "response": "The current weather in Tokyo is as follows:\n\n- Temperature: 14.8°C\n- Feels like: 13.4°C\n- Condition: Few clouds\n- Humidity: 42%\n- Wind Speed: 4.63 m/s\n- Pressure: 1013 hPa\n- Visibility: 10 km\n\nIf you need more information or forecasts, feel free to ask!",
+  "tool_calls": [...]
 }
 ```
 
@@ -150,7 +151,8 @@ curl -X POST "http://localhost:8000/query" \
 **Expected Response:**
 ```json
 {
-  "response": "Over the last 7 days in London, the average temperature was 8.4°C, with a high of 11.2°C and a low of 5.1°C. The most common condition was 'Clouds'."
+  "response": "The temperature trend in London over the last 7 days has shown fluctuating temperatures. Here's a summary:\n\n- Temperatures ranged from a low of about -1.5°C to a high of around 10.5°C. \n- The trend indicates cold conditions early in the week, with the temperature gradually rising towards the end of the week. \n- There were periods of drizzle and overcast conditions, particularly with high humidity levels.\n\nIf you have any other weather-related inquiries, feel free to ask!",
+  "tool_calls": [...]
 }
 ```
 
@@ -165,7 +167,8 @@ curl -X POST "http://localhost:8000/query" \
 **Expected Response:**
 ```json
 {
-  "response": "I apologize, but I can only assist with weather-related questions."
+  "response": "I'm sorry, but I can only provide information about the weather. If you have any weather-related questions, feel free to ask!",
+  "tool_calls": []
 }
 ```
 
@@ -180,9 +183,9 @@ curl http://localhost:8000/health
 {
   "status": "healthy",
   "database": "connected",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "uptime_seconds": "1373.32705783844"
 }
-```
+
 
 ---
 
@@ -239,30 +242,6 @@ LIMIT 5;
 
 -- Exit the shell
 \q
-```
-
-### 3. API Usage (Manual Testing)
-You can query the running Agent via `curl` to simulate real user interactions.
-
-**Current Weather Query:**
-```bash
-curl -X POST "http://localhost:8000/query" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "What is the current weather in Tokyo?"}'
-```
-
-**Historical/Trend Query:**
-```bash
-curl -X POST "http://localhost:8000/query" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "What was the temperature trend in New York over the last 7 days?"}'
-```
-
-**Guardrail Test:**
-```bash
-curl -X POST "http://localhost:8000/query" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "Who won the World Cup?"}'
 ```
 
 ---
