@@ -12,12 +12,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- UPDATED SECTION ---
 # Copy the entire project (src, tests, docs, README, etc.)
 COPY . .
-# ---------------------
 
-# CRITICAL FIX: Add src to PYTHONPATH so imports like 'from database...' work
+# Add src to PYTHONPATH so imports like 'from database...' work
 ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 
 # Run the application
