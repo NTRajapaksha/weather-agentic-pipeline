@@ -183,32 +183,6 @@ ORDER BY started_at DESC
 LIMIT 20;
 ```
 
-**Job Success Rate**
-```sql
-SELECT 
-    job_name,
-    count(*) as total_runs,
-    count(*) FILTER (WHERE status = 'success') as successful_runs,
-    count(*) FILTER (WHERE status = 'failed') as failed_runs,
-    ROUND(100.0 * count(*) FILTER (WHERE status = 'success') / count(*), 2) as success_rate
-FROM job_history
-GROUP BY job_name
-ORDER BY job_name;
-```
-
-**Average Job Performance**
-```sql
-SELECT 
-    job_name,
-    ROUND(AVG(duration_seconds), 2) as avg_duration_seconds,
-    ROUND(AVG(cities_processed), 2) as avg_cities_processed,
-    ROUND(AVG(records_inserted), 2) as avg_records_inserted,
-    ROUND(AVG(records_updated), 2) as avg_records_updated
-FROM job_history
-WHERE status = 'success'
-GROUP BY job_name;
-```
-
 ### Access the Database Shell
 
 To run these queries, connect to the PostgreSQL container:
