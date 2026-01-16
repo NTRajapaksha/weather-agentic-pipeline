@@ -17,12 +17,19 @@ Stores current and historical weather observations for all monitored cities.
 | `longitude` | FLOAT | Geographic longitude |
 | `temperature` | FLOAT | Current temperature in Celsius |
 | `feels_like` | FLOAT | Perceived temperature in Celsius |
-| `humidity` | INTEGER | Humidity percentage |
+| `temp_min` | FLOAT | Minimum temperature in Celsius |
+| `temp_max` | FLOAT | Maximum temperature in Celsius |
 | `pressure` | INTEGER | Atmospheric pressure in hPa |
+| `humidity` | INTEGER | Humidity percentage |
 | `wind_speed` | FLOAT | Wind speed in m/s |
+| `wind_deg` | INTEGER | Wind direction in degrees |
+| `clouds` | INTEGER | Cloudiness percentage |
+| `visibility` | INTEGER | Visibility in meters |
 | `weather_main` | VARCHAR(50) | Primary weather condition (e.g., "Rain", "Clear") |
 | `weather_description` | VARCHAR(100) | Detailed description (e.g., "light rain") |
 | `timestamp` | TIMESTAMPTZ | Time of observation in UTC (Indexed) |
+| `sunrise` | TIMESTAMPTZ | Sunrise time in UTC |
+| `sunset` | TIMESTAMPTZ | Sunset time in UTC |
 | `source` | VARCHAR(50) | Origin of data: 'api', 'backfill', or 'synthetic' |
 | `created_at` | TIMESTAMPTZ | Record creation time (default: now) |
 
@@ -32,7 +39,7 @@ Stores current and historical weather observations for all monitored cities.
 
 ---
 
-### 2. `job_history` (Optional)
+### 2. `job_history`
 Tracks the execution status of the orchestration jobs.
 
 | Column | Type | Description |
@@ -41,7 +48,12 @@ Tracks the execution status of the orchestration jobs.
 | `job_name` | VARCHAR(100) | Name of the scheduled task |
 | `status` | VARCHAR(20) | 'success', 'failed', 'running' |
 | `started_at` | TIMESTAMPTZ | Execution start time |
+| `completed_at` | TIMESTAMPTZ | Execution completion time |
+| `duration_seconds` | FLOAT | Duration of job execution in seconds |
+| `cities_processed` | INTEGER | Number of cities processed in the job |
 | `records_inserted` | INTEGER | Count of new records added |
+| `records_updated` | INTEGER | Count of existing records updated |
+| `error_message` | TEXT | Error message if job failed |
 
 ## Data Flow
 1.  **Ingestion**: Python script fetches data from OpenWeatherMap.
@@ -133,7 +145,12 @@ SELECT
     count(*) as total_records,
     count(*) FILTER (WHERE temperature IS NULL) as null_temp,
     count(*) FILTER (WHERE humidity IS NULL) as null_humidity,
-    count(*) FILTER (WHERE weather_main IS NULL) as null_weather
+    count(*) FILTER (WHERE weather_main IS NULL) as null_weather,
+    count(*) FILTER (WHERE temp_min IS NULL) as null_temp_min,
+    count(*) FILTER (WHERE temp_max IS NULL) as null_temp_max,
+    count(*) FILTER (WHERE wind_deg IS NULL) as null_wind_deg,
+    count(*) FILTER (WHERE clouds IS NULL) as null_clouds,
+    count(*) FILTER (WHERE visibility IS NULL) as null_visibility
 FROM weather_data;
 ```
 
@@ -146,6 +163,50 @@ SELECT * FROM weather_data
 WHERE city = 'London' 
   AND timestamp > NOW() - INTERVAL '7 days'
 ORDER BY timestamp DESC;
+```
+
+### Job History Analysis
+
+**Recent Job Executions**
+```sql
+SELECT 
+    job_name,
+    status,
+    started_at,
+    completed_at,
+    duration_seconds,
+    cities_processed,
+    records_inserted,
+    records_updated
+FROM job_history
+ORDER BY started_at DESC
+LIMIT 20;
+```
+
+**Job Success Rate**
+```sql
+SELECT 
+    job_name,
+    count(*) as total_runs,
+    count(*) FILTER (WHERE status = 'success') as successful_runs,
+    count(*) FILTER (WHERE status = 'failed') as failed_runs,
+    ROUND(100.0 * count(*) FILTER (WHERE status = 'success') / count(*), 2) as success_rate
+FROM job_history
+GROUP BY job_name
+ORDER BY job_name;
+```
+
+**Average Job Performance**
+```sql
+SELECT 
+    job_name,
+    ROUND(AVG(duration_seconds), 2) as avg_duration_seconds,
+    ROUND(AVG(cities_processed), 2) as avg_cities_processed,
+    ROUND(AVG(records_inserted), 2) as avg_records_inserted,
+    ROUND(AVG(records_updated), 2) as avg_records_updated
+FROM job_history
+WHERE status = 'success'
+GROUP BY job_name;
 ```
 
 ### Access the Database Shell
